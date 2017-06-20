@@ -34,7 +34,170 @@ start:
     MOV ax, 13h 
     INT 10h
 
+    name "unicorngame"
+
+org 100h   
+
+jmp start      
+
+tam equ 0
+cursor dw  tam dup(0) 
+
+acima      equ     48h
+abaixo    equ     50h  
+parado    equ     52h
+
+direcao db  parado 
+prd1 db "************* $"
+prd2 db "|$"
+
+vertical equ $- prd1
+horizontal equ $- prd2
+
+msg 	db "==== Como Jogar ====", 0dh,0ah
+	db "Use as setas p/ cima e p/ baixo para controlar o cursor", 0dh,0ah,0ah	
+	db "Aperte Esc para sair", 0dh,0ah
+	db "====================", 0dh,0ah, 0ah
+	db "Aperte qualquer tecla para comecar!$"
+
+
+;----codigo-----    
+
+start:
+
+; print da mensagem
+mov dx, offset msg
+mov ah, 9
+int 21h   
+
+; aguardando tecla para iniciar
+mov ah, 00h
+int 16h
+
+; escondendo o cursor de texto  
+mov ah, 1
+mov ch, 2bh
+mov cl, 0bh
+int 10h    
+
+
+;parede1 prd1 
+;parede2 prd2
+
+loop_jogo:
+
+; desenhar campo
+
+
+; colocando cursor no inicio da tela
+mov al, 0
+mov ah, 05h
+int 10h
+
+mov dx, cursor
+
+mov ah, 02h 
+int 10h
+
+mov al, '@'
+mov ah, 09h
+mov bl, 0eh
+mov cx, 1
+int 10h
+
+; controlando o cursor
+
+
+mov ah, 00h
+int 16h
+
+cmp al, 1bh ;tecla esc
+je parar              
+
+call move_cursor
+
+
+;;;;;;funcoes;;;;;   
+macro setpos x,y
+    mov ah,02h
+    mov  dh,x
+    mov dl, y
+    int 10h
+endm
+
+macro parede1 horizontal 
+    setpos 1,1
+    mov ah, 09h
+    lea dx, horizontal
+    int 21h
     
+    setpos 11,1
+    mov ah, 09h
+    lea dx, horizontal
+    int 21h
+endm
+
+macro parede2 vertical
+    mov cx,11
+    for setpos cl,00h
+    mov ah, 09h
+    lea dx, vertical
+    int 21h
+    
+    setpos cl, 0eh
+    mov ah, 09h
+    lea dx, vertical
+    int 21h
+    loop for
+endm
+         
+parar:
+mov ah, 1
+mov ch, 0bh
+mov cl, 0bh
+int 10h    
+
+move_cursor proc ear
+
+mov ax, 40h
+mov es, ax
+
+cmp direcao, acima
+je pcima
+
+cmp direcao, abaixo
+je pbaixo    
+
+jmp para_cursor
+
+
+pcima:
+mov al, b.cursor
+dec al
+mov b.cursor, al
+cmp al, -1
+jne para_cursor
+mov al, es:[84h] ; linha num -1
+mov b.cursor, al   ; volta p baixo
+jmp para_cursor
+
+pbaixo:
+mov al, b.cursor
+inc  al
+mov b.cursor, al
+cmp al, es:[84h] ; linha num +1
+jbe para_cursor
+mov b.cursor, 0       ; volta p topo 
+jmp para_cursor
+
+para_cursor:
+ret
+
+move_cursor endp
+
+
+
+
     
     ;stop process
     MOV AX, 4C00h ; prepare to interrupt process
