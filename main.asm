@@ -34,20 +34,24 @@ start:
     MOV ax, 13h 
     INT 10h
 
+    
     name "unicorngame"
 
 org 100h   
 
-jmp start      
+jmp start  
 
-tam equ 0
+scrCleaner db '$'    
+
+tam equ 1
 cursor dw  tam dup(0) 
 
 acima      equ     48h
 abaixo    equ     50h  
 parado    equ     52h
 
-direcao db  parado 
+direcao db  abaixo    
+espera dw 0
 prd1 db "************* $"
 prd2 db "|$"
 
@@ -55,10 +59,10 @@ vertical equ $- prd1
 horizontal equ $- prd2
 
 msg 	db "==== Como Jogar ====", 0dh,0ah
-	db "Use as setas p/ cima e p/ baixo para controlar o cursor", 0dh,0ah,0ah	
-	db "Aperte Esc para sair", 0dh,0ah
+	db "Avoid the unicorns using arrow keys", 0dh,0ah,0ah	
+	db "Press esc to exit.", 0dh,0ah
 	db "====================", 0dh,0ah, 0ah
-	db "Aperte qualquer tecla para comecar!$"
+	db "Press any key to start!$"
 
 
 ;----codigo-----    
@@ -74,7 +78,9 @@ int 21h
 mov ah, 00h
 int 16h
 
-; escondendo o cursor de texto  
+; escondendo o cursor de texto
+mov ax, SEG scrCleaner
+mov ds, ax  
 mov ah, 1
 mov ch, 2bh
 mov cl, 0bh
@@ -99,25 +105,57 @@ mov dx, cursor
 mov ah, 02h 
 int 10h
 
-mov al, '@'
+mov al, 02h   ;;CURSOR
 mov ah, 09h
 mov bl, 0eh
 mov cx, 1
 int 10h
 
-; controlando o cursor
 
 
-mov ah, 00h
-int 16h
+
 
 cmp al, 1bh ;tecla esc
 je parar              
 
-call move_cursor
+call move_cursor   
+
+mov ah,02h 
+int 10h    
+
+mov al, ' '
+mov ah, 09h
+mov bl,0eh
+mov cx, 1
+int 10h
 
 
-;;;;;;funcoes;;;;;   
+
+;;;;;;funcoes;;;;; 
+
+
+verificar_tecla:
+mov ah, 01h
+int 16h
+jz sem_tecla   
+
+
+sem_tecla:
+mov ah, 00h
+int 1ah
+cmp dx, espera
+jb verificar_tecla
+add dx, 4
+mov espera, dx
+
+
+
+
+
+;;;;;loop eterno;;;;;;;
+jmp loop_jogo
+
+  
 macro setpos x,y
     mov ah,02h
     mov  dh,x
@@ -157,10 +195,13 @@ mov ch, 0bh
 mov cl, 0bh
 int 10h    
 
-move_cursor proc ear
+move_cursor proc near
 
 mov ax, 40h
-mov es, ax
+mov es, ax  
+
+mov di, tam
+mov cx, tam-1
 
 cmp direcao, acima
 je pcima
@@ -183,7 +224,7 @@ jmp para_cursor
 
 pbaixo:
 mov al, b.cursor
-inc  al
+inc al
 mov b.cursor, al
 cmp al, es:[84h] ; linha num +1
 jbe para_cursor
@@ -194,7 +235,6 @@ para_cursor:
 ret
 
 move_cursor endp
-
 
 
 
