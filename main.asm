@@ -21,6 +21,31 @@ org 100h         ;use for .com files, since it sets the current adress to 100h a
     var_pos_char_main dw 0              ;hold position of main character
     var_pos_char_unicorn dw 0           ;hold position of unicorn character
     
+    ;-----
+    ;jmp start      
+
+    tam equ 0
+    cursor dw  tam dup(0) 
+
+    acima      equ     48h
+    abaixo    equ     50h  
+    parado    equ     52h
+
+    direcao db  parado 
+    prd1 db "************* $"
+    prd2 db "|$"
+
+    vertical equ $- prd1
+    horizontal equ $- prd2
+
+    msg     db "==== Como Jogar ====", 0dh,0ah
+    db "Use as setas p/ cima e p/ baixo para controlar o cursor", 0dh,0ah,0ah   
+    db "Aperte Esc para sair", 0dh,0ah
+    db "====================", 0dh,0ah, 0ah
+    db "Aperte qualquer tecla para comecar!$"
+    ;-----
+
+    
 .code
 start:
     ;limpa buffer para print
@@ -33,37 +58,6 @@ start:
     ;enter graphic mode, 300x200 8bit color
     MOV ax, 13h 
     INT 10h
-
-    name "unicorngame"
-
-org 100h   
-
-jmp start      
-
-tam equ 0
-cursor dw  tam dup(0) 
-
-acima      equ     48h
-abaixo    equ     50h  
-parado    equ     52h
-
-direcao db  parado 
-prd1 db "************* $"
-prd2 db "|$"
-
-vertical equ $- prd1
-horizontal equ $- prd2
-
-msg 	db "==== Como Jogar ====", 0dh,0ah
-	db "Use as setas p/ cima e p/ baixo para controlar o cursor", 0dh,0ah,0ah	
-	db "Aperte Esc para sair", 0dh,0ah
-	db "====================", 0dh,0ah, 0ah
-	db "Aperte qualquer tecla para comecar!$"
-
-
-;----codigo-----    
-
-start:
 
 ; print da mensagem
 mov dx, offset msg
@@ -125,31 +119,6 @@ macro setpos x,y
     int 10h
 endm
 
-macro parede1 horizontal 
-    setpos 1,1
-    mov ah, 09h
-    lea dx, horizontal
-    int 21h
-    
-    setpos 11,1
-    mov ah, 09h
-    lea dx, horizontal
-    int 21h
-endm
-
-macro parede2 vertical
-    mov cx,11
-    for setpos cl,00h
-    mov ah, 09h
-    lea dx, vertical
-    int 21h
-    
-    setpos cl, 0eh
-    mov ah, 09h
-    lea dx, vertical
-    int 21h
-    loop for
-endm
          
 parar:
 mov ah, 1
