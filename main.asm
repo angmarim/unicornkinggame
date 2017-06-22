@@ -21,8 +21,11 @@ org 100h         ;use for .com files, since it sets the current adress to 100h a
     var_pos_char_main dw 0              ;hold position of main character
     var_pos_char_unicorn dw 0           ;hold position of unicorn character
     
+    X dw 0
+    Y dw 0
+    B dw 0
     ;-----
-    ;jmp start      
+    jmp start      
 
     tam equ 0
     cursor dw  tam dup(0) 
@@ -98,72 +101,6 @@ mov ah, 09h
 mov bl, 0eh
 mov cx, 1
 int 10h
-
-; controlando o cursor
-
-
-mov ah, 00h
-int 16h
-
-cmp al, 1bh ;tecla esc
-je parar              
-
-call move_cursor
-
-
-;;;;;;funcoes;;;;;   
-macro setpos x,y
-    mov ah,02h
-    mov  dh,x
-    mov dl, y
-    int 10h
-endm
-
-         
-parar:
-mov ah, 1
-mov ch, 0bh
-mov cl, 0bh
-int 10h    
-
-move_cursor proc ear
-
-mov ax, 40h
-mov es, ax
-
-cmp direcao, acima
-je pcima
-
-cmp direcao, abaixo
-je pbaixo    
-
-jmp para_cursor
-
-
-pcima:
-mov al, b.cursor
-dec al
-mov b.cursor, al
-cmp al, -1
-jne para_cursor
-mov al, es:[84h] ; linha num -1
-mov b.cursor, al   ; volta p baixo
-jmp para_cursor
-
-pbaixo:
-mov al, b.cursor
-inc  al
-mov b.cursor, al
-cmp al, es:[84h] ; linha num +1
-jbe para_cursor
-mov b.cursor, 0       ; volta p topo 
-jmp para_cursor
-
-para_cursor:
-ret
-
-move_cursor endp
-
 
 
 
