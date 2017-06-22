@@ -58,12 +58,19 @@ prd2 db "|$"
 vertical equ $- prd1
 horizontal equ $- prd2
 
-msg 	db "==== Como Jogar ====", 0dh,0ah
+msg 	db "==== How To Play ====", 0dh,0ah
 	db "Avoid the unicorns using arrow keys", 0dh,0ah,0ah	
-	db "Press esc to exit.", 0dh,0ah
+	db "Press Esc to exit.", 0dh,0ah
 	db "====================", 0dh,0ah, 0ah
 	db "Press any key to start!$"
-
+        
+uni db "       â           â               ", 0dh, 0ah
+    db "                                   ", 0dh, 0ah
+    db "                                   ", 0dh, 0ah
+    db " â          â         â            ", 0dh, 0ah
+    db "                                   ", 0dh, 0ah
+    db "                                   ", 0dh, 0ah
+    db "  â      â     â     â     â       $"        
 
 ;----codigo-----    
 
@@ -78,13 +85,29 @@ int 21h
 mov ah, 00h
 int 16h
 
+
 ; escondendo o cursor de texto
 mov ax, SEG scrCleaner
 mov ds, ax  
 mov ah, 1
 mov ch, 2bh
 mov cl, 0bh
-int 10h    
+int 10h      
+
+;TENTANDO limpar a tela e
+;colocar unicornios no lugar
+
+mov al, 0
+mov ah, 05h
+int 10h
+
+mov ah, 02h 
+int 10h
+
+mov dx, offset uni
+mov ah, 9
+int 21h
+
 
 
 ;parede1 prd1 
@@ -95,9 +118,12 @@ loop_jogo:
 ; desenhar campo
 
 
-; colocando cursor no inicio da tela
-mov al, 0
-mov ah, 05h
+; colocando cursor no inicio da tela    
+
+
+
+mov al, 1
+mov ah, 06h   
 int 10h
 
 mov dx, cursor
@@ -138,7 +164,14 @@ verificar_tecla:
 mov ah, 01h
 int 16h
 jz sem_tecla   
+             
+mov ah, 00h
+int 16h
 
+cmp al, 1bh             ;;;;;;;;;esc
+je parar
+
+mov direcao, ah
 
 sem_tecla:
 mov ah, 00h
@@ -235,7 +268,6 @@ para_cursor:
 ret
 
 move_cursor endp
-
 
 
     
