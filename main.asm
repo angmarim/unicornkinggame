@@ -10,11 +10,11 @@ INCLUDE emu8086.inc
     ;msgs section
     msg_horned db "You got horned.$"
     msg_dodge db "Do not get horned!$"
-msg_game_start  db "==== How To Play ====", 0dh,0ah
-            db "Avoid the unicorns using 'a' and 'd'", 0dh,0ah,0ah   
-            db "Press Esc to exit.", 0dh,0ah
-            db "====================", 0dh,0ah, 0ah
-            db "Press any key to start!$"
+    msg_game_start  db "==== How To Play ====", 0dh,0ah
+                db "Avoid the unicorns using 'a' and 'd'", 0dh,0ah,0ah   
+                db "Press Esc to exit.", 0dh,0ah
+                db "====================", 0dh,0ah, 0ah
+                db "Press any key to start!$"
     ;objects section
     char_main db "@$" 
     char_unicorn db "<$" 
@@ -26,7 +26,8 @@ msg_game_start  db "==== How To Play ====", 0dh,0ah
 
     ;configuration section
     startX db 39    ;start position of main char
-    startY db 24    ;start position of main char    
+    startY db 24    ;start position of main char
+    ;startFirstUnicorn db     
     jmp start      
 
     
@@ -36,7 +37,7 @@ start:
 ;WAIT PLAYER START
 ;################################
 ;print msg_game_start          ;#
-mov dx, offset msg             ;#
+mov dx, offset msg_game_start  ;#
 mov ah, 9                      ;#
 int 21h                        ;#
 ; wait key press to start      ;#
@@ -66,7 +67,10 @@ int 16h                        ;#
 ;MAIN LOGIC SECTION
 ;###################################################################################
         waitKeyPress:                                                             ;#
-            ;check if keystroke true/false                                        ;#
+            ;avoid buffer getting stuck by weird characters                       ;#
+            MOV AH, 08h ;clear keyboard buffer so it doesnt                       ;#
+            INT 21H     ;keep moving and change direction                         ;#
+            ;wait for useer input                                                 ;#
             MOV AH, 1                                                             ;#
             INT 16H         ;interruption to check if keyboard buffer have a value;#
             ;if keystroke flag true goto                                          ;#
