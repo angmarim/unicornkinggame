@@ -1,277 +1,168 @@
-model small
 org 100h         ;use for .com files, since it sets the current adress to 100h and .com files start ar h10 adress
-;jmp start
+INCLUDE emu8086.inc  
+
 .stack           ;reserve  quantity of memory for the stack, use for .exe since you need to create a stack of functions
 
 .data
     ;utils section
     scrCleaner DB '$'
+    eraseChar db ' $'
     ;msgs section
     msg_horned db "You got horned.$"
-    msg_dodge db "Do not get horned!$"
+    msg_dodge db "Do not get horned!$" 
+    
+    msg_game_start db "__ __ ___ __  _  ____  ____   ____ ___ __", 0dh,0ah
+                db "| || ||  \| || |/  __\/ __ \ |    \|  \| |", 0dh,0ah
+                db "| || || |\  || || |__ | |_| ||    /| |\  |", 0dh,0ah
+                db "\____/|_| |_||_|\____/\____/ |_|\_\|_| |_|", 0dh,0ah 
+                db "============== How To Play ==============", 0dh,0ah
+                db "==Avoid the unicorns using 'a' and 'd'===", 0dh,0ah,0ah   
+                db "===========Press Esc to exit.===========", 0dh,0ah
+                db "========================================", 0dh,0ah, 0ah
+                db "________Press any key to start!_________$"
     ;objects section
-    char_main db "@$"
-    char_unicorn db "<$"
+    char_main db 02h 
+    char_unicorn db "<$" 
     ;variables section
     var_print_dodged_unicorns db "000$" ;hold string that represents the score
     var_dodged_unicorns dw 0            ;hold a number which means total score
-    
-    var_must_quit db 0                  ;flag when player quit
-    
-    var_pos_char_main dw 0              ;hold position of main character
-    var_pos_char_unicorn dw 0           ;hold position of unicorn character
+ 
+    var_must_quit db 9                  ;flag when player quit
+
+    ;configuration section
+    startX db 39    ;start position of main char
+    startY db 24    ;start position of main char
+    ;startFirstUnicorn db     
+    jmp start      
+
     
 .code
 start:
-    ;limpa buffer para print
-    MOV ax, SEG scrCleaner
-    MOV ds,ax 
-    ;keyboard config
-    MOV ax, 0305h
-    XOR bx, bx
-    INT 16h
-    ;enter graphic mode, 300x200 8bit color
-    MOV ax, 13h 
-    INT 10h
 
-    
-    name "unicorngame"
+;WAIT PLAYER START
+;################################
+;print msg_game_start          ;#
+mov dx, offset msg_game_start  ;#
+mov ah, 9                      ;#
+int 21h                        ;#
+; wait key press to start      ;#
+mov ah, 00h                    ;#
+int 16h                        ;#
+;################################
+ 
+;GAME START CONFIG
+;########################################################################
+    ;limpa buffer para print                                           ;#
+    call CLEAR_SCREEN                                                  ;#
+    MOV ax, SEG scrCleaner                                             ;#
+    MOV ds,ax                                                          ;#
+                                                                       ;#
+    ;Configuration section                                             ;#
+        ;set char position                                             ;#
+        MOV DH, startY      ;set y coordinate value for main char      ;#
+        MOV DL, startX      ;set x coord val to main char              ;#
+        GOTOXY DL, DH       ;place cursor at this position             ;#
+        ;print char in position                                        ;#
+        PUTC char_main      ;print main char in GOTOXY position        ;#
+        ;resets                                                        ;#
+        XOR AL, AL          ;AL = 0 *see logic classes to understand*  ;#
+;########################################################################
+     
+     ;FUNCTIONS
+;MAIN LOGIC SECTION
+;###################################################################################
+        waitKeyPress:                                                             ;#
+            ;avoid buffer getting stuck by weird characters                       ;#
+           ; MOV AH, 08h ;clear keyboard buffer so it doesnt                       ;#
+           ; INT 21H     ;keep moving and change direction                         ;#
+            ;wait for user input                                                  ;#
+            ;check if keystroke true/false                                        ;#
+            MOV AH, 1                                                             ;#
+            INT 16H         ;interruption to check if keyboard buffer have a value;#
+            ;if keystroke flag true goto                                          ;#
+            JNZ moveChar    ;if flag from interruption 1, go to move char function;#
+                returnFromMoveChar:                                               ;#
+            ;goto functions that move unicorns                                    ;#
+            JMP moveUnicorns                                                      ;#
+                returnMoveUnicorns:                                               ;#
+            ;keep checking all above forever other then....                       ;#
+            ;...missing if horned die                                             ;#
+            JMP waitKeyPress                                                      ;#
+;###################################################################################      
 
-org 100h   
+;LOGIC FOR MOVING CHAR OR UNICORNS OR BOTH SECTION
+;#############################################
+        moveChar:                           ;#
+            cmp al, 1bh
+            je gameExit 
+            
+            CMP AL,'a'                      ;#
+            JE  movLeft                     ;#
+            CMP AL, 'd'                     ;#
+            JE  movRight                    ;#
+            returnAfterMove:                ;#
+            JMP returnFromMoveChar          ;#
+;#############################################     
 
-jmp start  
+;MOVE CHAR SECTION                         
+;#################################################################
+        movLeft:                                                ;#
+            ;erase old char position                            ;#
+            GOTOXY DL, DH                                       ;#
+            PUTC eraseChar                                      ;#
+            ;check if off board                                 ;#
+            CMP startX, 2      ;if off board                    ;#
+            JLE ifLeftOffBoard;ignore all under                 ;#
+            ;set new position                                   ;#
+            DEC startX                                          ;#
+            MOV DL, startX                                      ;#
+            ;if offboard start from here                        ;#
+            ifLeftOffBoard:                                     ;#
+            GOTOXY DL, DH ;get X position                       ;#
+            ;print char again in new position if not off board  ;#
+            PUTC char_main                          ;#          ;#
+            XOR AL, AL          ;clean register     ;#          ;#
+            MOV AH, 08h ;clear keyboard buffer so it doesnt     ;#
+            INT 21H     ;keep moving and change direction       ;#
+            JMP returnAfterMove ;go back to loop    ;#          ;#
+                                                    ;#          ;#
+        movRight:                                               ;#
+            ;erase old char position                            ;#
+            GOTOXY DL, DH                                       ;#
+            PUTC eraseChar                                      ;#
+            ;check if off board                                 ;#
+            CMP startX, 78      ;if off board                   ;#
+            JGE ifRightOffBoard;ignore all under                ;#
+            ;set new position                                   ;#
+            INC startX                                          ;#
+            MOV DL, startX                                      ;#
+            ifRightOffBoard:                                    ;#
+            GOTOXY DL, DH                                       ;#
+            ;print char in new position                         ;#
+            PUTC char_main                                      ;#
+            XOR AL, AL                                          ;#
+            MOV AH, 08h   ;clear keyboard buffer so it doesnt   ;#
+            INT 21H       ;keep moving and change direction     ;#
+            JMP returnAfterMove ;go back to loop                ;#
+;#################################################################
 
-scrCleaner db '$'    
+;MOVE UNICORNS SECTION  
+;#############################################
+        moveUnicorns:                       ;#
+            JMP returnMoveUnicorns          ;#
+;#############################################  
 
-tam equ 1
-cursor dw  tam dup(0) 
-
-acima      equ     48h
-abaixo    equ     50h  
-parado    equ     52h
-
-direcao db  abaixo    
-espera dw 0
-prd1 db "************* $"
-prd2 db "|$"
-
-vertical equ $- prd1
-horizontal equ $- prd2
-
-msg 	db "==== How To Play ====", 0dh,0ah
-	db "Avoid the unicorns using arrow keys", 0dh,0ah,0ah	
-	db "Press Esc to exit.", 0dh,0ah
-	db "====================", 0dh,0ah, 0ah
-	db "Press any key to start!$"
-        
-uni db "       â           â               ", 0dh, 0ah
-    db "                                   ", 0dh, 0ah
-    db "                                   ", 0dh, 0ah
-    db " â          â         â            ", 0dh, 0ah
-    db "                                   ", 0dh, 0ah
-    db "                                   ", 0dh, 0ah
-    db "  â      â     â     â     â       $"        
-
-;----codigo-----    
-
-start:
-
-; print da mensagem
-mov dx, offset msg
-mov ah, 9
-int 21h   
-
-; aguardando tecla para iniciar
-mov ah, 00h
-int 16h
-
-
-; escondendo o cursor de texto
-mov ax, SEG scrCleaner
-mov ds, ax  
-mov ah, 1
-mov ch, 2bh
-mov cl, 0bh
-int 10h      
-
-;TENTANDO limpar a tela e
-;colocar unicornios no lugar
-
-mov al, 0
-mov ah, 05h
-int 10h
-
-mov ah, 02h 
-int 10h
-
-mov dx, offset uni
-mov ah, 9
-int 21h
-
-
-
-;parede1 prd1 
-;parede2 prd2
-
-loop_jogo:
-
-; desenhar campo
-
-
-; colocando cursor no inicio da tela    
-
-
-
-mov al, 1
-mov ah, 06h   
-int 10h
-
-mov dx, cursor
-
-mov ah, 02h 
-int 10h
-
-mov al, 02h   ;;CURSOR
-mov ah, 09h
-mov bl, 0eh
-mov cx, 1
-int 10h
-
-
-
-
-
-cmp al, 1bh ;tecla esc
-je parar              
-
-call move_cursor   
-
-mov ah,02h 
-int 10h    
-
-mov al, ' '
-mov ah, 09h
-mov bl,0eh
-mov cx, 1
-int 10h
-
-
-
-;;;;;;funcoes;;;;; 
-
-
-verificar_tecla:
-mov ah, 01h
-int 16h
-jz sem_tecla   
-             
-mov ah, 00h
-int 16h
-
-cmp al, 1bh             ;;;;;;;;;esc
-je parar
-
-mov direcao, ah
-
-sem_tecla:
-mov ah, 00h
-int 1ah
-cmp dx, espera
-jb verificar_tecla
-add dx, 4
-mov espera, dx
-
-
-
-
-
-;;;;;loop eterno;;;;;;;
-jmp loop_jogo
-
-  
-macro setpos x,y
-    mov ah,02h
-    mov  dh,x
-    mov dl, y
+gameExit:
+    mov ah, 1
+    mov ch, 0bh
+    mov cl, 0bh
     int 10h
-endm
+    ret
 
-macro parede1 horizontal 
-    setpos 1,1
-    mov ah, 09h
-    lea dx, horizontal
-    int 21h
-    
-    setpos 11,1
-    mov ah, 09h
-    lea dx, horizontal
-    int 21h
-endm
-
-macro parede2 vertical
-    mov cx,11
-    for setpos cl,00h
-    mov ah, 09h
-    lea dx, vertical
-    int 21h
-    
-    setpos cl, 0eh
-    mov ah, 09h
-    lea dx, vertical
-    int 21h
-    loop for
-endm
-         
-parar:
-mov ah, 1
-mov ch, 0bh
-mov cl, 0bh
-int 10h    
-
-move_cursor proc near
-
-mov ax, 40h
-mov es, ax  
-
-mov di, tam
-mov cx, tam-1
-
-cmp direcao, acima
-je pcima
-
-cmp direcao, abaixo
-je pbaixo    
-
-jmp para_cursor
-
-
-pcima:
-mov al, b.cursor
-dec al
-mov b.cursor, al
-cmp al, -1
-jne para_cursor
-mov al, es:[84h] ; linha num -1
-mov b.cursor, al   ; volta p baixo
-jmp para_cursor
-
-pbaixo:
-mov al, b.cursor
-inc al
-mov b.cursor, al
-cmp al, es:[84h] ; linha num +1
-jbe para_cursor
-mov b.cursor, 0       ; volta p topo 
-jmp para_cursor
-
-para_cursor:
-ret
-
-move_cursor endp
-
-
-    
+      
+DEFINE_CLEAR_SCREEN 
+DEFINE_SCAN_NUM
     ;stop process
     MOV AX, 4C00h ; prepare to interrupt process
-    INT 21h ; interrup process    
+    INT 21h ; interrup process
 end start
