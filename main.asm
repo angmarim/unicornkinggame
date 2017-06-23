@@ -6,31 +6,22 @@ INCLUDE emu8086.inc
 .data
     ;utils section
     scrCleaner DB '$'
-
+    eraseChar db ' '
     ;msgs section
     msg_horned db "You got horned.$"
     msg_dodge db "Do not get horned!$"
     ;objects section
     char_main db "@$" 
-    char_main_next db ?
     char_unicorn db "<$" 
-    char_unicorn_next db ?
     ;variables section
     var_print_dodged_unicorns db "000$" ;hold string that represents the score
     var_dodged_unicorns dw 0            ;hold a number which means total score
  
     var_must_quit db 9                  ;flag when player quit
-    
-    var_pos_char_main dw 0              ;hold position of main character
-    var_pos_char_unicorn dw 0           ;hold position of unicorn character
- 
+
     ;configuration section
     startX db 39    ;start position of main char
     startY db 24    ;start position of main char    
-             
-    move_right db 4
-    move_left db 6
-    
     jmp start      
 
     
@@ -71,39 +62,50 @@ start:
 ;LOGIC FOR MOVING CHAR OR UNICORNS OR BOTH SECTION
 ;#############################################
         moveChar:                           ;#
-            ;move keyboard buffer to ax     ;#
-            MOV AH, 1                       ;#
-            INT 16h                         ;#
-            CMP AH, 4                     ;#
+            CMP AL,'a'                         ;#
             JE  movLeft                     ;#
-            CMP AH, 6                     ;#
-            JE  movLeft                     ;#
-                returnAfterMove:            ;#
+            CMP AL, 'd'                       ;#
+            JE  movRight                     ;#
+                returnAfterMove:
+            ;MOV AH, 08h   ;clear keyboard buffer so it doesnt                                                          ;#
+            ;INT 21H       ;keep moving and change direction
             JMP returnFromMoveChar          ;#
 ;#############################################     
 
 ;MOVE CHAR SECTION                         
 ;#####################################################
-        movLeft:                                    ;#
-            ;set new position                       ;#
-            INC startX                              ;#
+        movLeft:
+            CMP startX, 2      ;if off board
+            JLE returnAfterMove;ignore all under                                    ;#
+            ;erase old char position
+            GOTOXY DL, DH  
+            PUTC eraseChar                       ;#
+            ;set new position
+            DEC startX                              ;#
             MOV DL, startX                          ;#
             GOTOXY DL, DH                           ;#
-            call CLEAR_SCREEN                            ;#
             ;print char again in new position       ;#
             PUTC char_main                          ;#
             XOR AL, AL          ;clean register     ;#
+            MOV AH, 08h ;clear keyboard buffer so it doesnt                                                             ;#
+            INT 21H     ;keep moving and change direction
             JMP returnAfterMove ;go back to loop    ;#
                                                     ;#
-        movRight:                                   ;#
+        movRight:
+            CMP startX, 78      ;if off board
+            JGE returnAfterMove;ignore all under
+            ;erase old char position
+            GOTOXY DL, DH   
+            PUTC eraseChar                           ;#
             ;set new position                       ;#
             INC startX                              ;#
             MOV DL, startX                          ;#
             GOTOXY DL, DH                           ;#
-            call CLEAR_SCREEN                            ;#
             ;print char in new position             ;#
-            PUTC AL, AL                             ;#
-            XOR AL, AL                              ;#
+            PUTC char_main                             ;#
+            XOR AL, AL 
+            MOV AH, 08h   ;clear keyboard buffer so it doesnt                                                          ;#
+            INT 21H       ;keep moving and change direction
             JMP returnAfterMove ;go back to loop    ;#
 ;#####################################################
 
