@@ -6,10 +6,15 @@ INCLUDE emu8086.inc
 .data
     ;utils section
     scrCleaner DB '$'
-    eraseChar db ' '
+    eraseChar db ' $'
     ;msgs section
     msg_horned db "You got horned.$"
     msg_dodge db "Do not get horned!$"
+msg_game_start  db "==== How To Play ====", 0dh,0ah
+            db "Avoid the unicorns using 'a' and 'd'", 0dh,0ah,0ah   
+            db "Press Esc to exit.", 0dh,0ah
+            db "====================", 0dh,0ah, 0ah
+            db "Press any key to start!$"
     ;objects section
     char_main db "@$" 
     char_unicorn db "<$" 
@@ -27,19 +32,35 @@ INCLUDE emu8086.inc
     
 .code
 start:
-    ;limpa buffer para print
-    MOV ax, SEG scrCleaner
-    MOV ds,ax  
 
-    ;Configuration section
-        ;set char position
-        MOV DH, startY      ;set y coordinate value for main char
-        MOV DL, startX      ;set x coord val to main char
-        GOTOXY DL, DH       ;place cursor at this position
-        ;print char in position
-        PUTC char_main      ;print main char in GOTOXY position
-        ;resets
-        XOR AL, AL          ;AL = 0 *see logic classes to understand*
+;WAIT PLAYER START
+;################################
+;print msg_game_start          ;#
+mov dx, offset msg             ;#
+mov ah, 9                      ;#
+int 21h                        ;#
+; wait key press to start      ;#
+mov ah, 00h                    ;#
+int 16h                        ;#
+;################################
+ 
+;GAME START CONFIG
+;########################################################################
+    ;limpa buffer para print                                           ;#
+    call CLEAR_SCREEN                                                  ;#
+    MOV ax, SEG scrCleaner                                             ;#
+    MOV ds,ax                                                          ;#
+                                                                       ;#
+    ;Configuration section                                             ;#
+        ;set char position                                             ;#
+        MOV DH, startY      ;set y coordinate value for main char      ;#
+        MOV DL, startX      ;set x coord val to main char              ;#
+        GOTOXY DL, DH       ;place cursor at this position             ;#
+        ;print char in position                                        ;#
+        PUTC char_main      ;print main char in GOTOXY position        ;#
+        ;resets                                                        ;#
+        XOR AL, AL          ;AL = 0 *see logic classes to understand*  ;#
+;########################################################################
      
      ;FUNCTIONS
 ;MAIN LOGIC SECTION
@@ -62,52 +83,55 @@ start:
 ;LOGIC FOR MOVING CHAR OR UNICORNS OR BOTH SECTION
 ;#############################################
         moveChar:                           ;#
-            CMP AL,'a'                         ;#
+            CMP AL,'a'                      ;#
             JE  movLeft                     ;#
-            CMP AL, 'd'                       ;#
-            JE  movRight                     ;#
-                returnAfterMove:
-            ;MOV AH, 08h   ;clear keyboard buffer so it doesnt                                                          ;#
-            ;INT 21H       ;keep moving and change direction
+            CMP AL, 'd'                     ;#
+            JE  movRight                    ;#
+            returnAfterMove:                ;#
             JMP returnFromMoveChar          ;#
 ;#############################################     
 
 ;MOVE CHAR SECTION                         
-;#####################################################
-        movLeft:
-            CMP startX, 2      ;if off board
-            JLE returnAfterMove;ignore all under                                    ;#
-            ;erase old char position
-            GOTOXY DL, DH  
-            PUTC eraseChar                       ;#
-            ;set new position
-            DEC startX                              ;#
-            MOV DL, startX                          ;#
-            GOTOXY DL, DH                           ;#
-            ;print char again in new position       ;#
-            PUTC char_main                          ;#
-            XOR AL, AL          ;clean register     ;#
-            MOV AH, 08h ;clear keyboard buffer so it doesnt                                                             ;#
-            INT 21H     ;keep moving and change direction
-            JMP returnAfterMove ;go back to loop    ;#
-                                                    ;#
-        movRight:
-            CMP startX, 78      ;if off board
-            JGE returnAfterMove;ignore all under
-            ;erase old char position
-            GOTOXY DL, DH   
-            PUTC eraseChar                           ;#
-            ;set new position                       ;#
-            INC startX                              ;#
-            MOV DL, startX                          ;#
-            GOTOXY DL, DH                           ;#
-            ;print char in new position             ;#
-            PUTC char_main                             ;#
-            XOR AL, AL 
-            MOV AH, 08h   ;clear keyboard buffer so it doesnt                                                          ;#
-            INT 21H       ;keep moving and change direction
-            JMP returnAfterMove ;go back to loop    ;#
-;#####################################################
+;#################################################################
+        movLeft:                                                ;#
+            ;erase old char position                            ;#
+            GOTOXY DL, DH                                       ;#
+            PUTC eraseChar                                      ;#
+            ;check if off board                                 ;#
+            CMP startX, 2      ;if off board                    ;#
+            JLE ifLeftOffBoard;ignore all under                 ;#
+            ;set new position                                   ;#
+            DEC startX                                          ;#
+            MOV DL, startX                                      ;#
+            ;if offboard start from here                        ;#
+            ifLeftOffBoard:                                     ;#
+            GOTOXY DL, DH ;get X position                       ;#
+            ;print char again in new position if not off board  ;#
+            PUTC char_main                          ;#          ;#
+            XOR AL, AL          ;clean register     ;#          ;#
+            MOV AH, 08h ;clear keyboard buffer so it doesnt     ;#
+            INT 21H     ;keep moving and change direction       ;#
+            JMP returnAfterMove ;go back to loop    ;#          ;#
+                                                    ;#          ;#
+        movRight:                                               ;#
+            ;erase old char position                            ;#
+            GOTOXY DL, DH                                       ;#
+            PUTC eraseChar                                      ;#
+            ;check if off board                                 ;#
+            CMP startX, 78      ;if off board                   ;#
+            JGE ifRightOffBoard;ignore all under                ;#
+            ;set new position                                   ;#
+            INC startX                                          ;#
+            MOV DL, startX                                      ;#
+            ifRightOffBoard:                                    ;#
+            GOTOXY DL, DH                                       ;#
+            ;print char in new position                         ;#
+            PUTC char_main                                      ;#
+            XOR AL, AL                                          ;#
+            MOV AH, 08h   ;clear keyboard buffer so it doesnt   ;#
+            INT 21H       ;keep moving and change direction     ;#
+            JMP returnAfterMove ;go back to loop                ;#
+;#################################################################
 
 ;MOVE UNICORNS SECTION  
 ;#############################################
