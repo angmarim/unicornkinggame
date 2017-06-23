@@ -56,12 +56,19 @@ int 16h                        ;#
     call CLEAR_SCREEN                                                  ;#
     MOV ax, SEG scrCleaner                                             ;#
     MOV ds,ax                                                          ;#
-                                                                       ;#
+          ;;;;;;; colocando cor na tela de jogo         
+            mov ah, 06h
+            mov al, 00h
+            mov bh, 0ach
+            mov cx, 00h
+            mov dx, 184fh
+            int 10h                                                    ;#
     ;Configuration section                                             ;#
         ;set char position                                             ;#
         MOV DH, startY      ;set y coordinate value for main char      ;#
         MOV DL, startX      ;set x coord val to main char              ;#
-        GOTOXY DL, DH       ;place cursor at this position             ;#
+        GOTOXY DL, DH       ;place cursor at this position
+                     ;#
         ;print char in position                                        ;#
         PUTC char_main      ;print main char in GOTOXY position        ;#
         ;resets                                                        ;#
@@ -107,9 +114,18 @@ int 16h                        ;#
 ;MOVE CHAR SECTION                         
 ;#################################################################
         movLeft:                                                ;#
+                       
+            
             ;erase old char position                            ;#
             GOTOXY DL, DH                                       ;#
-            PUTC eraseChar                                      ;#
+            PUTC eraseChar 
+              ;sound
+            mov ah, 2
+            mov dl, 07h
+            int 21h 
+            
+            
+                                                 ;#
             ;check if off board                                 ;#
             CMP startX, 2      ;if off board                    ;#
             JLE ifLeftOffBoard;ignore all under                 ;#
@@ -126,10 +142,16 @@ int 16h                        ;#
             INT 21H     ;keep moving and change direction       ;#
             JMP returnAfterMove ;go back to loop    ;#          ;#
                                                     ;#          ;#
-        movRight:                                               ;#
+        movRight:   
+                                                    ;#
             ;erase old char position                            ;#
             GOTOXY DL, DH                                       ;#
-            PUTC eraseChar                                      ;#
+            PUTC eraseChar   
+              ;sound
+            mov ah, 2
+            mov dl, 07h
+            int 21h
+                                               ;#
             ;check if off board                                 ;#
             CMP startX, 78      ;if off board                   ;#
             JGE ifRightOffBoard;ignore all under                ;#
